@@ -102,7 +102,7 @@ Aplicación para gestión de ordenes y pedidos.
 
 #Side header
 st.sidebar.markdown(today)
-st.sidebar.image(image)
+#st.sidebar.image(image)
 my_form = st.sidebar.form(key = "form1")
 new_customer = my_form.text_input('Nuevo cliente', '-')
 submitted0 = my_form.form_submit_button('Agregar nuevo cliente .')
