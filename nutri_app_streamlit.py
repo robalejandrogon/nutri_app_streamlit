@@ -13,7 +13,7 @@ from pywebio.input import *
 import datetime
 from datetime import timedelta
 import os
-import beepy as beep
+#import beepy as beep
 from github import Github
 import requests
 import io
@@ -376,7 +376,7 @@ if submitted5:
     #file1.writelines(more_lines)
     #file1.close()
     upload_to_github(more_lines)
-    beep.beep(1)
+    #beep.beep(1)
 
 if submitted6:
     df_merge= session_state.df.merge(df_costos,on='Pedido',how='left')
