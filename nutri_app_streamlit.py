@@ -1,5 +1,4 @@
 from pandas.core.frame import DataFrame
-from pywebio import session
 import streamlit as st
 import pandas as pd
 import base64
@@ -9,7 +8,6 @@ import numpy as np
 from PIL import Image
 from datetime import date
 import SessionState
-from pywebio.input import *
 import datetime
 from datetime import timedelta
 import os
@@ -97,7 +95,7 @@ session_state = SessionState.get(df=df_structure)
 
 st.title('SGPA')
 
-image = Image.open('image_1.png')
+#image = Image.open('image_1.png')
 today = date.today()
 
 #Description
