@@ -3,3 +3,5 @@ streamlit==1.0.0
 numpy==1.21.2
 Pillow==8.3.2
 PyGithub==1.55
+urllib3==1.26.7
+mysql-connector-python==8.0.27
