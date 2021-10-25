@@ -105,7 +105,7 @@ if submitted0:
     mydb.commit()
     mycursor2.close()
     mydb.close()
-    #st.session_state['clientes'].append(new_customer)
+    st.session_state['clientes'].append(new_customer)
     st.success('Nuevo Cliente agregado')
 selected_customer = my_form.selectbox('Nombre:',st.session_state['clientes'])
 
@@ -122,7 +122,7 @@ if submitted1:
     mydb.commit()
     mycursor4.close()
     mydb.close()
-    #st.session_state['pedidos'].append(new_pedido)
+    st.session_state['pedidos'].append(new_pedido)
     st.success('Nuevo pedido agregado')
 selected_pedido = my_form.selectbox('Pedido:',st.session_state['pedidos'])
 cantidad_pedido = my_form.number_input('Cantidad',min_value=1)
