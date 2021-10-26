@@ -58,7 +58,7 @@ if 'pedidos' not in st.session_state:
     #st.session_state['pedidos']=['Pollo','Pescado','Salmón','Camarones','E.Buffalo','E. Carnes Frias','E. Dliz','E. Cesar','Hamb Normal','Hamb Chilaca','Hamb Champiñones','Hamb Haw','Atun']
     st.session_state['pedidos']=df_costos['Pedido'].tolist()
 if 'variacion' not in st.session_state:
-    st.session_state['variacion']=['Sin carbo','Colitis','Sin sal', 'Sin chile','Otro * especificar']
+    st.session_state['variacion']=['Sin carbo','Colitis','Sin sal', 'Sin chile','Otro * especificar','-']
 if 'clientes' not in st.session_state:
     st.session_state['clientes'] = df_customer2['NOMBRE'].tolist()
 
@@ -125,7 +125,7 @@ if submitted1:
     st.session_state['pedidos'].append(new_pedido)
     st.success('Nuevo pedido agregado')
 selected_pedido = my_form.selectbox('Pedido:',st.session_state['pedidos'])
-cantidad_pedido = my_form.number_input('Cantidad',min_value=1)
+cantidad_pedido = my_form.number_input('Cantidad',min_value=0)
 gramaje_pedido = my_form.text_input('Pedido específico con gramaje', '-')
 
 
@@ -273,15 +273,15 @@ if submitted5:
                                                       (session_state.df['Variación']=='Sin chile') |
                                                       (session_state.df['Variación']=='Otro * especificar')
                                                       ),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
 
     platillos_pollo_sin_sal = len(session_state.df.loc[(session_state.df.Pedido=='Pollo') & 
                                                   (session_state.df['Variación']=='Sin sal'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
 
     pescado_sin_sal = len(session_state.df.loc[(session_state.df.Pedido=='Pescado') & 
                                                   (session_state.df['Variación']=='Sin sal'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     
     pescado_normal = len(session_state.df.loc[(session_state.df.Pedido=='Pescado') & 
                                                   (
@@ -290,11 +290,11 @@ if submitted5:
                                                       (session_state.df['Variación']=='Sin chile') |
                                                       (session_state.df['Variación']=='Otro * especificar')
                                                       ),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
 
     salmon_sin_sal = len(session_state.df.loc[(session_state.df.Pedido=='Salmón') & 
                                                   (session_state.df['Variación']=='Sin sal'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
 
     salmon_normal = len(session_state.df.loc[(session_state.df.Pedido=='Salmón') & 
                                                   (
@@ -303,11 +303,11 @@ if submitted5:
                                                       (session_state.df['Variación']=='Sin chile') |
                                                       (session_state.df['Variación']=='Otro * especificar')
                                                       ),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     
     camarones_sin_sal = len(session_state.df.loc[(session_state.df.Pedido=='Camarones') & 
                                                   (session_state.df['Variación']=='Sin sal'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
 
     camarones_normal = len(session_state.df.loc[(session_state.df.Pedido=='Camarones') & 
                                                   (
@@ -316,11 +316,11 @@ if submitted5:
                                                       (session_state.df['Variación']=='Sin chile') |
                                                       (session_state.df['Variación']=='Otro * especificar')
                                                       ),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     
     atun_sin_sal = len(session_state.df.loc[(session_state.df.Pedido=='Atun') & 
                                                   (session_state.df['Variación']=='Sin sal'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
 
     atun_normal = len(session_state.df.loc[(session_state.df.Pedido=='Atun') & 
                                                   (
@@ -329,24 +329,24 @@ if submitted5:
                                                       (session_state.df['Variación']=='Sin chile') |
                                                       (session_state.df['Variación']=='Otro * especificar')
                                                       ),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     #'E.Buffalo','E. Carnes Frias','E. Dliz','E. Cesar','Hamb Normal','Hamb Chilaca','Hamb Champiñones','Hamb Haw'
     e_buffalo = len(session_state.df.loc[(session_state.df.Pedido=='E.Buffalo'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     e_carnes_frias = len(session_state.df.loc[(session_state.df.Pedido=='E. Carnes Frias'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     d_liz = len(session_state.df.loc[(session_state.df.Pedido=='E. Dliz'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     e_cesar = len(session_state.df.loc[(session_state.df.Pedido=='E. Cesar'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     h_normal = len(session_state.df.loc[(session_state.df.Pedido=='Hamb Normal'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     h_chilaca = len(session_state.df.loc[(session_state.df.Pedido=='Hamb Chilaca'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     h_champ = len(session_state.df.loc[(session_state.df.Pedido=='Hamb Chilaca'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     h_haw = len(session_state.df.loc[(session_state.df.Pedido=='Hamb Haw'),
-                                                      'Pedido'])
+                                                      'Pedido'])*cantidad_pedido
     desayuno = session_state.df['Desayuno'].sum()
     print(f'Desayuno {desayuno}')
 
