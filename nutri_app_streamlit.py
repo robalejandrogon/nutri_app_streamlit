@@ -1,3 +1,4 @@
+from logging import PlaceHolder
 from pandas.core.frame import DataFrame
 import streamlit as st
 import pandas as pd
@@ -15,6 +16,7 @@ import io
 from io import BytesIO
 from urllib.request import urlopen
 import mysql.connector
+from streamlit_autorefresh import st_autorefresh
 
 pd.set_option('display.expand_frame_repr', False)
 #url_customer = "https://raw.githubusercontent.com/robalejandrogon/files/main/clientes.csv" # Make sure the url is the raw version of the file on GitHub
@@ -23,6 +25,12 @@ pd.set_option('display.expand_frame_repr', False)
 url_structure = "https://raw.githubusercontent.com/robalejandrogon/files/main/estructura.csv" # Make sure the url is the raw version of the file on GitHub
 download_structure = requests.get(url_structure).content
 df_structure = pd.read_csv(io.StringIO(download_structure.decode('utf-8')))
+
+url_structure2 = "https://raw.githubusercontent.com/robalejandrogon/files/main/estructura_v2.csv" # Make sure the url is the raw version of the file on GitHub
+download_structure2 = requests.get(url_structure2).content
+df_structure2 = pd.read_csv(io.StringIO(download_structure2.decode('utf-8')))
+
+
 #url_costos = "https://raw.githubusercontent.com/robalejandrogon/files/main/costos.csv" # Make sure the url is the raw version of the file on GitHub
 #download_costos = requests.get(url_costos).content
 #df_costos = pd.read_csv(io.StringIO(download_costos.decode('utf-8')))
@@ -61,8 +69,10 @@ if 'variacion' not in st.session_state:
     st.session_state['variacion']=['Sin carbo','Colitis','Sin sal', 'Sin chile','Otro * especificar','-']
 if 'clientes' not in st.session_state:
     st.session_state['clientes'] = df_customer2['NOMBRE'].tolist()
-
-session_state = SessionState.get(df=df_structure)
+if 'placeholder' not in st.session_state:
+    st.session_state['placeholder'] = '-'
+#session_state = SessionState.get(df=df_structure)
+session_state = SessionState.get(df=df_structure2)
 session_state.df['Ruta'] = pd.Categorical(session_state.df['Ruta'], ['R1A','R1C','R2A','R2C','R1V','R2V','LOCAL'])
 #customers = df_customer['NOMBRE '].tolist()
 
@@ -70,7 +80,7 @@ session_state.df['Ruta'] = pd.Categorical(session_state.df['Ruta'], ['R1A','R1C'
 #variacion= ['Sin carbo','Colitis','Sin sal', 'Sin chile','Otro * especificar']
 #https://srv555.main-hosting.eu:7443/files/public_html/bell.wav
 #ruta
-ruta = ['R1A','R1C','R1V','R2A','R2C','R2V','LOCAL']
+ruta = ['R1A','R1C','R1V','R2A','R2C','R2V','LOCAL','-']
 
 #pedidos
 #pedidos=['Pollo','Pescado','Salmón','Camarones','E.Buffalo','E. Carnes Frias','E. Dliz','E. Cesar','Hamb Normal','Hamb Chilaca','Hamb Champiñones','Hamb Haw']
@@ -78,78 +88,104 @@ ruta = ['R1A','R1C','R1V','R2A','R2C','R2V','LOCAL']
 session_state = SessionState.get(df=df_structure)
 
 st.title('SGPA')
-
+st.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 response = requests.get("https://raw.githubusercontent.com/robalejandrogon/nutri_app_streamlit/main/image_1.png")
 img = Image.open(BytesIO(response.content))
 
 today = date.today()
 
 #Description
-st.markdown("""
-Aplicación para gestión de ordenes y pedidos.
-""")
+#st.markdown("""
+#Aplicación para gestión de ordenes y pedidos.
+#""")
 
 #Side header
 st.sidebar.markdown(today)
 st.sidebar.image(img)
 my_form = st.sidebar.form(key = "form1")
 my_form.header('Cliente', anchor=None)
-new_customer = my_form.text_input('Nuevo cliente', '-')
+new_cliente_fill = '-'
+new_customer = my_form.text_input('Nuevo cliente', st.session_state['placeholder'] )
 submitted0 = my_form.form_submit_button('Agregar nuevo cliente .')
 #INSERT INTO clientes (cliente) VALUES ('Hola')
 if submitted0:
-    sql_new_customer = '''INSERT INTO clientes (cliente) VALUES (%s)'''
-    values=(new_customer,)
-    mycursor2 = mydb.cursor(prepared=True)
-    mycursor2.execute(sql_new_customer,values)
-    mydb.commit()
-    mycursor2.close()
-    mydb.close()
-    st.session_state['clientes'].append(new_customer)
-    st.success('Nuevo Cliente agregado')
-selected_customer = my_form.selectbox('Nombre:',st.session_state['clientes'])
+    if new_customer == '-':
+        st.warning('Cliente no valido')
+    else:
+        sql_new_customer = '''INSERT INTO clientes (cliente) VALUES (%s)'''
+        values=(new_customer,)
+        mycursor2 = mydb.cursor(prepared=True)
+        mycursor2.execute(sql_new_customer,values)
+        mydb.commit()
+        mycursor2.close()
+        mydb.close()
+        st.session_state['clientes'].append(new_customer)
+        st.success('Nuevo Cliente agregado')
+        
+default_ix = st.session_state['clientes'].index('-')
+selected_customer = my_form.selectbox('Nombre:',st.session_state['clientes'],index=default_ix)
+my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
 #my_form2 = st.sidebar.form(key="form2")
 my_form.header('Pedido', anchor=None)
-new_pedido = my_form.text_input('Nuevo pedido', '-')
-precio_new_pedido = my_form.text_input('Precio nuevo pedido', '-')
+new_pedido_fill='-'
+new_pedido = my_form.text_input('Nuevo pedido', new_pedido_fill)
+precio_new_pedido = my_form.text_input('Precio nuevo pedido', new_pedido_fill)
 submitted1 = my_form.form_submit_button('Agregar nuevo pedido sencillo.')
 if submitted1:
-    sql_new_pedido = '''INSERT INTO costos (pedido,costo) VALUES (%s,%s)'''
-    values=(new_pedido,int(precio_new_pedido))
-    mycursor4 = mydb.cursor(prepared=True)
-    mycursor4.execute(sql_new_pedido,values)
-    mydb.commit()
-    mycursor4.close()
-    mydb.close()
-    st.session_state['pedidos'].append(new_pedido)
-    st.success('Nuevo pedido agregado')
-selected_pedido = my_form.selectbox('Pedido:',st.session_state['pedidos'])
-cantidad_pedido = my_form.number_input('Cantidad',min_value=0)
-gramaje_pedido = my_form.text_input('Pedido específico con gramaje', '-')
+    if new_pedido=='-':
+        st.warning('Pedido no valido')
+    else:
+        sql_new_pedido = '''INSERT INTO costos (pedido,costo) VALUES (%s,%s)'''
+        values=(new_pedido,int(precio_new_pedido))
+        mycursor4 = mydb.cursor(prepared=True)
+        mycursor4.execute(sql_new_pedido,values)
+        mydb.commit()
+        mycursor4.close()
+        mydb.close()
+        st.session_state['pedidos'].append(new_pedido)
+        st.success('Nuevo pedido agregado')
 
+default_ix_pedido = st.session_state['pedidos'].index('-')
+selected_pedido = my_form.selectbox('Pedido:',st.session_state['pedidos'],index=default_ix_pedido)
+cantidad_pedido = my_form.number_input('Cantidad',min_value=1)
+pedido_gramaje_fill='-'
+gramaje_pedido = my_form.text_input('Pedido específico con gramaje', pedido_gramaje_fill)
+my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
 #my_form3 = st.sidebar.form(key="form3")
 my_form.header('Variación', anchor=None)
-new_variacion = my_form.text_input('Nuevo variacion', '-')
+variacion_fill='-'
+new_variacion = my_form.text_input('Nuevo variacion', variacion_fill)
 submitted2 = my_form.form_submit_button('Agregar nueva variacion.')
 if submitted2:
-    st.session_state['variacion'].append(new_variacion)
-    st.success('Nueva variación agregado')
-selected_variacion= my_form.selectbox('Variación',st.session_state['variacion'])
+    if new_variacion=='-':
+        st.warning('Variación no valida')
+    else:
+        st.session_state['variacion'].append(new_variacion)
+        st.success('Nueva variación agregado')
+
+default_ix_variacion= st.session_state['variacion'].index('-')
+selected_variacion= my_form.selectbox('Variación',st.session_state['variacion'],index=default_ix_variacion)
+my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 
 #my_form4 = st.sidebar.form(key="form4")
 my_form.header('Ruta', anchor=None)
-selected_ruta = my_form.selectbox('Ruta:',ruta)
+default_ix_ruta = ruta.index('-')
+selected_ruta = my_form.selectbox('Ruta:',ruta,index=default_ix_ruta)
+my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 my_form.header('Tiempos', anchor=None)
 desayuno = my_form.number_input('Desayuno',0)
 snack = my_form.number_input('Snack',0)
 merienda = my_form.number_input('Merienda', 0)
 cena = my_form.number_input('Cena', 0)
+my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 my_form.header('Acciones', anchor=None)
+
 submitted3 = my_form.form_submit_button('Agregar')
 submitted4 = my_form.form_submit_button('Editar')
-submitted5 = my_form.form_submit_button('Eliminar')
+id_a_eliminar = my_form.text_input('id del regitro a eliminar', '-')
+submitted52 = my_form.form_submit_button('Eliminar')
 submitted_ruta = my_form.form_submit_button('Ordenar por ruta')
 submitted_reinicio = my_form.form_submit_button('reiniciar')
 
@@ -181,7 +217,10 @@ if submitted3:
     #if selected_customer in session_state.df.Cliente.tolist():
     #    st.warning('Cliente ya registrado')
     #else:
-    add_new_customer()
+    if selected_customer == '-':
+        st.warning('Cliente vacio')
+    else:
+        add_new_customer()
 
 
 if submitted4:
@@ -196,12 +235,16 @@ if submitted4:
     session_state.df.loc[session_state.df['Cliente']==selected_customer,'Cena'] = cena
     st.success('Cliente actualizado')
 
-if submitted5:
-    i = session_state.df.loc[session_state.df['Cliente']==selected_customer,:].index
-    session_state.df.drop(i,inplace=True)
-    session_state.df.reset_index(inplace=True)
-    session_state.df.drop('index',axis=1,inplace=True)
-    st.success('Cliente eliminado')
+if submitted52:
+    if int(id_a_eliminar) in session_state.df.index:
+        i = session_state.df.loc[session_state.df['Cliente']==selected_customer,:].index
+        #session_state.df.drop(i,inplace=True)
+        session_state.df.drop(int(id_a_eliminar),inplace=True)
+        session_state.df.reset_index(inplace=True)
+        session_state.df.drop('index',axis=1,inplace=True)
+        st.success('Cliente eliminado')
+    else:
+        st.warning('Cliente no registrado')
 
 if submitted_reinicio:
     sql = """UPDATE pedidos SET platillos_pollo_normal= 0,platillos_pollo_sin_sal= 0,
@@ -236,7 +279,15 @@ if submitted_reinicio:
     print(mycursor.rowcount, "record(s) affected")
     mycursor.close()
     #mydb.close()
+
+    mycursor2= mydb.cursor()
+    mycursor2.execute("TRUNCATE TABLE gramaje")
+    mycursor2.close()
+    mydb.commit()
+
+    mydb.close()    
     session_state = SessionState.get(df=df_structure)
+    session_state.df = session_state.df.truncate(after=-1)
     st.success('Pedidos reseteados')
 
 if submitted_ruta:
@@ -244,11 +295,28 @@ if submitted_ruta:
     session_state.df['Ruta'] = pd.Categorical(session_state.df['Ruta'], ['R1A','R1C','R1V','R2A','R2C','R2V','LOCAL'])
     session_state.df = session_state.df.sort_values('Ruta')
 
-st.dataframe(session_state.df)
+st.dataframe(session_state.df,width=1500,height=400)
+#st.table(session_state.df)
 file = st.file_uploader("Subir reportes para generar reporte semanal", type=['csv'],accept_multiple_files=True)
 if not file:
     st.write("-")
 
+
+st.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+#with st.container():
+col6,col7=st.columns(2)
+check_customer = col6.selectbox('Nombre:',st.session_state['clientes'])
+PlaceHolder2 = col7.write('')
+PlaceHolder3 = col7.write('')
+check_flag = col7.checkbox("Ok",False)
+button_ckeck = col6.button('Guardar')
+if button_ckeck:
+    if check_flag:
+        if check_customer in session_state.df['Cliente'].tolist():
+            session_state.df.loc[session_state.df['Cliente'].str.contains(check_customer),'Check']= 'Ok'
+            count = st_autorefresh(interval=2000, limit=100, key="fizzbuzzcounter")
+
+st.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 with st.container():
     col1,col2,col3,col4,col5= st.columns(5)
     submitted4 = col1.button('Gráfica')
@@ -256,6 +324,8 @@ with st.container():
     submitted6 = col3.button('Reporte diario')
     submitted7 = col4.button('Reporte semanal')
     #submitted8 = col5.button('Ordenar por ruta')
+
+
 
 #if submitted8:
 #    #ruta = ['R1A','R1C','R1V','R2A','R2C','R2V']
@@ -266,87 +336,88 @@ if submitted4:
     st.bar_chart(session_state.df['Pedido'].value_counts())
 
 if submitted5:
-    platillos_pollo_normal = len(session_state.df.loc[(session_state.df.Pedido=='Pollo') & 
+    platillos_pollo_normal = session_state.df.loc[(session_state.df.Pedido=='Pollo') & 
                                                   (
                                                       (session_state.df['Variación']=='Sin carbo') |
                                                       (session_state.df['Variación']=='Colitis') |
                                                       (session_state.df['Variación']=='Sin chile') |
                                                       (session_state.df['Variación']=='Otro * especificar')
                                                       ),
-                                                      'Pedido'])*cantidad_pedido
-
-    platillos_pollo_sin_sal = len(session_state.df.loc[(session_state.df.Pedido=='Pollo') & 
+                                                      'Cantidad'].sum()
+    print(f'Platillos pollo normal : {platillos_pollo_normal}')
+    platillos_pollo_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Pollo') & 
                                                   (session_state.df['Variación']=='Sin sal'),
-                                                      'Pedido'])*cantidad_pedido
-
-    pescado_sin_sal = len(session_state.df.loc[(session_state.df.Pedido=='Pescado') & 
+                                                      'Cantidad'].sum()
+    print(f'Platillos pollo sin sal: {platillos_pollo_sin_sal}')
+    pescado_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Pescado') & 
                                                   (session_state.df['Variación']=='Sin sal'),
-                                                      'Pedido'])*cantidad_pedido
+                                                      'Cantidad'].sum()
+    print('Cantidad pedido : {cantidad_pedido}')
+    print(f'Platillos pescado sin sal: {pescado_sin_sal}')
+    pescado_normal = session_state.df.loc[(session_state.df.Pedido=='Pescado') & 
+                                                  (
+                                                      (session_state.df['Variación']=='Sin carbo') |
+                                                      (session_state.df['Variación']=='Colitis') |
+                                                      (session_state.df['Variación']=='Sin chile') |
+                                                      (session_state.df['Variación']=='Otro * especificar')
+                                                      ),
+                                                      'Cantidad'].sum()
+    print(f'Platillos pescado normal: {pescado_normal}')
+    salmon_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Salmón') & 
+                                                  (session_state.df['Variación']=='Sin sal'),
+                                                      'Cantidad'].sum()
+
+    salmon_normal = session_state.df.loc[(session_state.df.Pedido=='Salmón') & 
+                                                  (
+                                                      (session_state.df['Variación']=='Sin carbo') |
+                                                      (session_state.df['Variación']=='Colitis') |
+                                                      (session_state.df['Variación']=='Sin chile') |
+                                                      (session_state.df['Variación']=='Otro * especificar')
+                                                      ),
+                                                      'Cantidad'].sum()
     
-    pescado_normal = len(session_state.df.loc[(session_state.df.Pedido=='Pescado') & 
-                                                  (
-                                                      (session_state.df['Variación']=='Sin carbo') |
-                                                      (session_state.df['Variación']=='Colitis') |
-                                                      (session_state.df['Variación']=='Sin chile') |
-                                                      (session_state.df['Variación']=='Otro * especificar')
-                                                      ),
-                                                      'Pedido'])*cantidad_pedido
-
-    salmon_sin_sal = len(session_state.df.loc[(session_state.df.Pedido=='Salmón') & 
+    camarones_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Camarones') & 
                                                   (session_state.df['Variación']=='Sin sal'),
-                                                      'Pedido'])*cantidad_pedido
+                                                      'Cantidad'].sum()
 
-    salmon_normal = len(session_state.df.loc[(session_state.df.Pedido=='Salmón') & 
+    camarones_normal = session_state.df.loc[(session_state.df.Pedido=='Camarones') & 
                                                   (
                                                       (session_state.df['Variación']=='Sin carbo') |
                                                       (session_state.df['Variación']=='Colitis') |
                                                       (session_state.df['Variación']=='Sin chile') |
                                                       (session_state.df['Variación']=='Otro * especificar')
                                                       ),
-                                                      'Pedido'])*cantidad_pedido
+                                                      'Cantidad'].sum()
     
-    camarones_sin_sal = len(session_state.df.loc[(session_state.df.Pedido=='Camarones') & 
+    atun_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Atun') & 
                                                   (session_state.df['Variación']=='Sin sal'),
-                                                      'Pedido'])*cantidad_pedido
+                                                      'Cantidad'].sum()
 
-    camarones_normal = len(session_state.df.loc[(session_state.df.Pedido=='Camarones') & 
+    atun_normal = session_state.df.loc[(session_state.df.Pedido=='Atun') & 
                                                   (
                                                       (session_state.df['Variación']=='Sin carbo') |
                                                       (session_state.df['Variación']=='Colitis') |
                                                       (session_state.df['Variación']=='Sin chile') |
                                                       (session_state.df['Variación']=='Otro * especificar')
                                                       ),
-                                                      'Pedido'])*cantidad_pedido
-    
-    atun_sin_sal = len(session_state.df.loc[(session_state.df.Pedido=='Atun') & 
-                                                  (session_state.df['Variación']=='Sin sal'),
-                                                      'Pedido'])*cantidad_pedido
-
-    atun_normal = len(session_state.df.loc[(session_state.df.Pedido=='Atun') & 
-                                                  (
-                                                      (session_state.df['Variación']=='Sin carbo') |
-                                                      (session_state.df['Variación']=='Colitis') |
-                                                      (session_state.df['Variación']=='Sin chile') |
-                                                      (session_state.df['Variación']=='Otro * especificar')
-                                                      ),
-                                                      'Pedido'])*cantidad_pedido
+                                                      'Cantidad'].sum()
     #'E.Buffalo','E. Carnes Frias','E. Dliz','E. Cesar','Hamb Normal','Hamb Chilaca','Hamb Champiñones','Hamb Haw'
-    e_buffalo = len(session_state.df.loc[(session_state.df.Pedido=='E.Buffalo'),
-                                                      'Pedido'])*cantidad_pedido
-    e_carnes_frias = len(session_state.df.loc[(session_state.df.Pedido=='E. Carnes Frias'),
-                                                      'Pedido'])*cantidad_pedido
-    d_liz = len(session_state.df.loc[(session_state.df.Pedido=='E. Dliz'),
-                                                      'Pedido'])*cantidad_pedido
-    e_cesar = len(session_state.df.loc[(session_state.df.Pedido=='E. Cesar'),
-                                                      'Pedido'])*cantidad_pedido
-    h_normal = len(session_state.df.loc[(session_state.df.Pedido=='Hamb Normal'),
-                                                      'Pedido'])*cantidad_pedido
-    h_chilaca = len(session_state.df.loc[(session_state.df.Pedido=='Hamb Chilaca'),
-                                                      'Pedido'])*cantidad_pedido
-    h_champ = len(session_state.df.loc[(session_state.df.Pedido=='Hamb Chilaca'),
-                                                      'Pedido'])*cantidad_pedido
-    h_haw = len(session_state.df.loc[(session_state.df.Pedido=='Hamb Haw'),
-                                                      'Pedido'])*cantidad_pedido
+    e_buffalo = session_state.df.loc[(session_state.df.Pedido=='E.Buffalo'),
+                                                      'Cantidad'].sum()
+    e_carnes_frias = session_state.df.loc[(session_state.df.Pedido=='E. Carnes Frias'),
+                                                      'Cantidad'].sum()
+    d_liz = session_state.df.loc[(session_state.df.Pedido=='E. Dliz'),
+                                                      'Cantidad'].sum()
+    e_cesar = session_state.df.loc[(session_state.df.Pedido=='E. Cesar'),
+                                                      'Cantidad'].sum()
+    h_normal = session_state.df.loc[(session_state.df.Pedido=='Hamb Normal'),
+                                                      'Cantidad'].sum()
+    h_chilaca = session_state.df.loc[(session_state.df.Pedido=='Hamb Chilaca'),
+                                                      'Cantidad'].sum()
+    h_champ = session_state.df.loc[(session_state.df.Pedido=='Hamb Chilaca'),
+                                                      'Cantidad'].sum()
+    h_haw = session_state.df.loc[(session_state.df.Pedido=='Hamb Haw'),
+                                                      'Cantidad'].sum()
     desayuno = session_state.df['Desayuno'].sum()
     print(f'Desayuno {desayuno}')
 
@@ -421,6 +492,16 @@ if submitted5:
     print(mycursor.rowcount, "record(s) affected")
     mycursor.close()
     #mydb.close()
+    ##Updating gramaje
+    for index,row in session_state.df.iterrows():
+        sql_gramaje = '''INSERT INTO gramaje (gramaje) VALUES (%s)'''
+        values=(row['Gramaje'],)
+        mycursor2 = mydb.cursor(prepared=True)
+        mycursor2.execute(sql_gramaje,values)
+        mydb.commit()
+
+    mycursor2.close()
+    mydb.close()
     st.success('Contabilizador actualizado')
 
 if submitted6:
