@@ -75,7 +75,7 @@ if 'placeholder' not in st.session_state:
 
 #session_state = SessionState.get(df=df_structure)
 session_state = SessionState.get(df=df_structure2)
-session_state.df['Ruta'] = pd.Categorical(session_state.df['Ruta'], ['R1A','R1C','R2A','R2C','R1V','R2V','LOCAL'])
+session_state.df['Ruta'] = pd.Categorical(session_state.df['Ruta'], ['R1A','R1C','R2A','R2C','R1V','R2V','LOCAL','-'])
 #customers = df_customer['NOMBRE '].tolist()
 
 #variacion
@@ -359,15 +359,17 @@ if submitted_reinicio:
     print(mycursor.rowcount, "record(s) affected")
     mycursor.close()
     #mydb.close()
-
-    mycursor2= mydb.cursor()
-    mycursor2.execute("TRUNCATE TABLE gramaje")
-    mycursor2.close()
-    mydb.commit()
+    print(f'len : {len(session_state.df)}')
+    if len(session_state.df) > 0:
+        mycursor2= mydb.cursor()
+        mycursor2.execute("TRUNCATE TABLE gramaje")
+        mycursor2.close()
+        mydb.commit()
+        session_state.df = session_state.df.truncate(after=-1)
 
     mydb.close()    
     session_state = SessionState.get(df=df_structure)
-    session_state.df = session_state.df.truncate(after=-1)
+    
     st.success('Pedidos reseteados')
 #-----------------------------------------------------------------------------------------
 
@@ -390,7 +392,7 @@ if not file:
 st.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 #with st.container():
 col6,col7=st.columns(2)
-check_customer = col6.selectbox('Nombre:',session_state.df.Cliente)
+check_customer = col6.selectbox('Nombre:',session_state.df.Cliente.unique())
 PlaceHolder2 = col7.write('')
 PlaceHolder3 = col7.write('')
 check_flag = col7.checkbox("Ok",False)
@@ -425,13 +427,7 @@ if submitted4:
 #-----------------------------------------------------------------------------------------
 
 if submitted5:
-    platillos_pollo_normal = session_state.df.loc[(session_state.df.Pedido=='Pollo') & 
-                                                  (
-                                                      (session_state.df['Variación']=='Sin carbo') |
-                                                      (session_state.df['Variación']=='Colitis') |
-                                                      (session_state.df['Variación']=='Sin chile') |
-                                                      (session_state.df['Variación']=='Otro * especificar')
-                                                      ),
+    platillos_pollo_normal = session_state.df.loc[(session_state.df.Pedido=='Pollo') & (session_state.df['Variación']!='Sin sal'),
                                                       'Cantidad'].sum()
     print(f'Platillos pollo normal : {platillos_pollo_normal}')
     platillos_pollo_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Pollo') & 
@@ -444,36 +440,27 @@ if submitted5:
     print(f'Platillos pescado sin sal: {pescado_sin_sal}')
     pescado_normal = session_state.df.loc[(session_state.df.Pedido=='Pescado') & 
                                                   (
-                                                      (session_state.df['Variación']=='Sin carbo') |
-                                                      (session_state.df['Variación']=='Colitis') |
-                                                      (session_state.df['Variación']=='Sin chile') |
-                                                      (session_state.df['Variación']=='Otro * especificar')
+                                                      (session_state.df['Variación']!='Sin sal') 
                                                       ),
                                                       'Cantidad'].sum()
     print(f'Platillos pescado normal: {pescado_normal}')
     salmon_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Salmón') & 
                                                   (session_state.df['Variación']=='Sin sal'),
                                                       'Cantidad'].sum()
-
+    print(f'Salmon sin sal : {salmon_sin_sal}')
     salmon_normal = session_state.df.loc[(session_state.df.Pedido=='Salmón') & 
                                                   (
-                                                      (session_state.df['Variación']=='Sin carbo') |
-                                                      (session_state.df['Variación']=='Colitis') |
-                                                      (session_state.df['Variación']=='Sin chile') |
-                                                      (session_state.df['Variación']=='Otro * especificar')
+                                                      (session_state.df['Variación']!='Sin sal') 
                                                       ),
                                                       'Cantidad'].sum()
-    
+    print(f'Salmon normal : {salmon_normal}')
     camarones_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Camarones') & 
                                                   (session_state.df['Variación']=='Sin sal'),
                                                       'Cantidad'].sum()
 
     camarones_normal = session_state.df.loc[(session_state.df.Pedido=='Camarones') & 
                                                   (
-                                                      (session_state.df['Variación']=='Sin carbo') |
-                                                      (session_state.df['Variación']=='Colitis') |
-                                                      (session_state.df['Variación']=='Sin chile') |
-                                                      (session_state.df['Variación']=='Otro * especificar')
+                                                      (session_state.df['Variación']!='Sin sal') 
                                                       ),
                                                       'Cantidad'].sum()
     
@@ -483,10 +470,7 @@ if submitted5:
 
     atun_normal = session_state.df.loc[(session_state.df.Pedido=='Atun') & 
                                                   (
-                                                      (session_state.df['Variación']=='Sin carbo') |
-                                                      (session_state.df['Variación']=='Colitis') |
-                                                      (session_state.df['Variación']=='Sin chile') |
-                                                      (session_state.df['Variación']=='Otro * especificar')
+                                                      (session_state.df['Variación']!='Sin sal') 
                                                       ),
                                                       'Cantidad'].sum()
     #'E.Buffalo','E. Carnes Frias','E. Dliz','E. Cesar','Hamb Normal','Hamb Chilaca','Hamb Champiñones','Hamb Haw'
@@ -499,7 +483,7 @@ if submitted5:
     e_cesar = session_state.df.loc[(session_state.df.Pedido=='E. Cesar'),
                                                       'Cantidad'].sum()
 
-    h_normal = session_state.df.loc[(session_state.df.Pedido=='Hamb Normal'),
+    h_normal = session_state.df.loc[(session_state.df.Pedido=='Hamb Norma'),
                                                       'Cantidad'].sum()
     h_chilaca = session_state.df.loc[(session_state.df.Pedido=='Hamb Chilaca'),
                                                       'Cantidad'].sum()
@@ -508,11 +492,11 @@ if submitted5:
     h_haw = session_state.df.loc[(session_state.df.Pedido=='Hamb Haw'),
                                                       'Cantidad'].sum()
     #'Pan margarita','Lechuga','Pan thin'
-    h_normal_pan_thin = session_state.df.loc[(session_state.df.Pedido=='Hamb Normal') & (session_state.df['Variación']=='Pan thin') ,
+    h_normal_pan_thin = session_state.df.loc[(session_state.df.Pedido=='Hamb Norma') & (session_state.df['Variación']=='Pan thin') ,
                                                       'Cantidad'].sum()
-    h_normal_pan_margarita = session_state.df.loc[(session_state.df.Pedido=='Hamb Normal') & (session_state.df['Variación']=='Pan margarita') ,
+    h_normal_pan_margarita = session_state.df.loc[(session_state.df.Pedido=='Hamb Norma') & (session_state.df['Variación']=='Pan margarita') ,
                                                       'Cantidad'].sum()  
-    h_normal_pan_lechuga = session_state.df.loc[(session_state.df.Pedido=='Hamb Normal') & (session_state.df['Variación']=='Lechuga') ,
+    h_normal_pan_lechuga = session_state.df.loc[(session_state.df.Pedido=='Hamb Norma') & (session_state.df['Variación']=='Lechuga') ,
                                                       'Cantidad'].sum()
     h_chilaca_pan_thin = session_state.df.loc[(session_state.df.Pedido=='Hamb Chilaca') & (session_state.df['Variación']=='Pan thin') ,
                                                       'Cantidad'].sum()
@@ -600,7 +584,7 @@ if submitted5:
     #-----------------------------------------------------------------------
     ensaladas = e_buffalo  + e_carnes_frias + d_liz + e_cesar 
     platillos_normales = platillos_pollo_normal + pescado_normal + salmon_normal  + camarones_normal  + atun_normal
-    platillos_sin_sal = platillos_pollo_sin_sal + pescado_sin_sal + salmon_sin_sal + camarones_sin_sal + atun_normal 
+    platillos_sin_sal = platillos_pollo_sin_sal + pescado_sin_sal + salmon_sin_sal + camarones_sin_sal + atun_sin_sal 
     hamburguesas = h_normal + h_chilaca + h_champ + h_haw
     platillos_totales = desayuno + snack+ merienda+ cena+ platillos_pollo_normal + platillos_pollo_sin_sal + pescado_sin_sal + pescado_normal + salmon_sin_sal + salmon_normal + camarones_sin_sal + camarones_normal + atun_sin_sal + atun_normal +e_buffalo +e_carnes_frias + d_liz + e_cesar + h_normal + h_chilaca + h_champ + h_haw+panini_carnes_frias+panini_pollo
 
