@@ -1,6 +1,6 @@
 '''
 Project for Nutri Eat
-v.11
+v.12
 
 Developed by R.Gonzalez
 '''
@@ -25,267 +25,112 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from urllib.request import urlopen
 
-url_structure = "https://raw.githubusercontent.com/robalejandrogon/files/main/estructura.csv"
-download_structure = requests.get(url_structure).content
-df_structure = pd.read_csv(io.StringIO(download_structure.decode('utf-8')))
+@st.cache
+def get_data_structure():
+    url_structure = "https://raw.githubusercontent.com/robalejandrogon/files/main/estructura.csv"
+    download_structure = requests.get(url_structure).content
+    df_structure = pd.read_csv(io.StringIO(download_structure.decode('utf-8')))
 
-url_structure2 = "https://raw.githubusercontent.com/robalejandrogon/files/main/estructura_v2.csv"
-download_structure2 = requests.get(url_structure2).content
-df_structure2 = pd.read_csv(io.StringIO(download_structure2.decode('utf-8')))
+    url_structure2 = "https://raw.githubusercontent.com/robalejandrogon/files/main/estructura_v2.csv"
+    download_structure2 = requests.get(url_structure2).content
+    df_structure2 = pd.read_csv(io.StringIO(download_structure2.decode('utf-8')))
 
-url_ruta = "https://raw.githubusercontent.com/robalejandrogon/files/main/rutas.csv"
-download_ruta = requests.get(url_ruta).content
-df_ruta = pd.read_csv(io.StringIO(download_ruta.decode('utf-8')))
+    url_ruta = "https://raw.githubusercontent.com/robalejandrogon/files/main/rutas.csv"
+    download_ruta = requests.get(url_ruta).content
+    df_ruta = pd.read_csv(io.StringIO(download_ruta.decode('utf-8')))
 
-#Reading customers from db
-mydb = mysql.connector.connect(
-  host="sql555.main-hosting.eu ",
-  user="u591727659_robalejandro",
-  password="RobalejandroTest1234",
-  database="u591727659_test")
+    return df_structure2,df_ruta
 
-sql="""SELECT cliente FROM clientes"""
-sql2="""SELECT pedido,costo FROM costos"""
+@st.cache
+def get_picture():
+    response = requests.get("https://raw.githubusercontent.com/robalejandrogon/nutri_app_streamlit/main/image_1.png")
+    return response
 
-mycursor = mydb.cursor()
-mycursor.execute(sql)
-myresult = mycursor.fetchall()
-clients_list = [x[0] for x in myresult]
-df_customer2 = pd.DataFrame(clients_list,columns=['NOMBRE'])
-mycursor.close()
+@st.cache()
+def get_customer():
+    mydb = mysql.connector.connect(
+        host="sql555.main-hosting.eu ",
+        user="u591727659_robalejandro",
+        password="RobalejandroTest1234",
+        database="u591727659_test")
+    sql="""SELECT cliente FROM clientes"""
+    mycursor = mydb.cursor()
+    mycursor.execute(sql)
+    myresult = mycursor.fetchall()
+    clients_list = [x[0] for x in myresult]
+    df_customer2 = pd.DataFrame(clients_list,columns=['NOMBRE'])
+    mydb.close()
+    return df_customer2
 
-mycursor3 = mydb.cursor()
-mycursor3.execute(sql2)
-myresult2 = mycursor3.fetchall()
-df_costos = pd.DataFrame(myresult2,columns=['Pedido','Costo'])
-mycursor3.close()
+@st.cache()
+def get_cost():
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
+    sql2="""SELECT pedido,costo FROM costos"""
 
-#mydb.close()
+    mycursor3 = mydb.cursor()
+    mycursor3.execute(sql2)
+    myresult2 = mycursor3.fetchall()
+    df_costos = pd.DataFrame(myresult2,columns=['Pedido','Costo'])
+    mycursor3.close()
+    mydb.close()
+    return df_costos
 
+def insert_customer(new_customer):
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
+    sql_new_customer = '''INSERT INTO clientes (cliente) VALUES (%s)'''
+    values=(new_customer,)
+    mycursor2 = mydb.cursor(prepared=True)
+    mycursor2.execute(sql_new_customer,values)
+    mydb.commit()
+    mycursor2.close()
+    mydb.close()
+    st.session_state['clientes'].append(new_customer)
+    st.success('Nuevo Cliente agregado')
 
-if 'pedidos' not in st.session_state:
-    #st.session_state['pedidos']=['Pollo','Pescado','Salmón','Camarones','E.Buffalo','E. Carnes Frias','E. Dliz','E. Cesar','Hamb Normal','Hamb Chilaca','Hamb Champiñones','Hamb Haw','Atun']
-    st.session_state['pedidos']=df_costos['Pedido'].tolist()
-if 'variacion' not in st.session_state:
-    st.session_state['variacion']=['Sin carbo','Colitis','Sin sal', 'Sin chile','Pan margarita','Lechuga','Pan thin','Alitas','Buffalo','Mostaza','Limón pepper','Natural','BBQs','Otro * especificar','-']
-if 'clientes' not in st.session_state:
-    st.session_state['clientes'] = df_customer2['NOMBRE'].tolist()
-if 'placeholder' not in st.session_state:
-    st.session_state['placeholder'] = '-'
+def insert_new_pedido(new_pedido,precio_new_pedido):
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
+    sql_new_pedido = '''INSERT INTO costos (pedido,costo) VALUES (%s,%s)'''
+    values=(new_pedido,int(precio_new_pedido))
+    mycursor4 = mydb.cursor(prepared=True)
+    mycursor4.execute(sql_new_pedido,values)
+    mydb.commit()
+    mycursor4.close()
+    mydb.close()
+    st.session_state['pedidos'].append(new_pedido)
+    st.success('Nuevo pedido agregado')
 
-#session_state = SessionState.get(df=df_structure)
-session_state = SessionState.get(df=df_structure2)
-session_state.df['Ruta'] = pd.Categorical(session_state.df['Ruta'], ['R1A','R1C','R2A','R2C','R1V','R2V','LOCAL','-'])
-#customers = df_customer['NOMBRE '].tolist()
+def insert_gramaje(gramaje_pedido):
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
+    sql_gramaje = '''INSERT INTO gramaje (gramaje) VALUES (%s)'''
+    values=(gramaje_pedido,)
+    mycursor2 = mydb.cursor(prepared=True)
+    mycursor2.execute(sql_gramaje,values)
+    mydb.commit()
+    mycursor2.close()
+    mydb.close()
 
-#variacion
-#variacion= ['Sin carbo','Colitis','Sin sal', 'Sin chile','Otro * especificar']
-#https://srv555.main-hosting.eu:7443/files/public_html/bell.wav
-#ruta
-ruta = ['R1A','R1C','R1V','R2A','R2C','R2V','LOCAL','-']
-
-#pedidos
-#pedidos=['Pollo','Pescado','Salmón','Camarones','E.Buffalo','E. Carnes Frias','E. Dliz','E. Cesar','Hamb Normal','Hamb Chilaca','Hamb Champiñones','Hamb Haw']
-
-#session_state = SessionState.get(df=df_structure)
-
-st.title('Nutri Eat')
-st.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
-response = requests.get("https://raw.githubusercontent.com/robalejandrogon/nutri_app_streamlit/main/image_1.png")
-img = Image.open(BytesIO(response.content))
-
-today = date.today()
-
-#Description
-#st.markdown("""
-#Aplicación para gestión de ordenes y pedidos.
-#""")
-
-#Side header
-st.sidebar.markdown(today)
-st.sidebar.image(img)
-#-----------------------------------------------------------------------------------------
-my_form = st.sidebar.form(key = "form1")
-my_form.header('Cliente', anchor=None)
-new_cliente_fill = '-'
-new_customer = my_form.text_input('Nuevo cliente', st.session_state['placeholder'] )
-submitted0 = my_form.form_submit_button('Agregar nuevo cliente .')
-#INSERT INTO clientes (cliente) VALUES ('Hola')
-if submitted0:
-    if new_customer == '-':
-        st.warning('Cliente no valido')
-    else:
-        sql_new_customer = '''INSERT INTO clientes (cliente) VALUES (%s)'''
-        values=(new_customer,)
-        mycursor2 = mydb.cursor(prepared=True)
-        mycursor2.execute(sql_new_customer,values)
-        mydb.commit()
-        mycursor2.close()
-        mydb.close()
-        st.session_state['clientes'].append(new_customer)
-        st.success('Nuevo Cliente agregado')
-        
-default_ix = st.session_state['clientes'].index('-')
-selected_customer = my_form.selectbox('Nombre:',st.session_state['clientes'],index=default_ix)
-my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
-#-----------------------------------------------------------------------------------------
-
-#my_form2 = st.sidebar.form(key="form2")
-my_form.header('Pedido', anchor=None)
-new_pedido_fill='-'
-new_pedido = my_form.text_input('Nuevo pedido', new_pedido_fill)
-precio_new_pedido = my_form.text_input('Precio nuevo pedido', new_pedido_fill)
-submitted1 = my_form.form_submit_button('Agregar nuevo pedido sencillo.')
-if submitted1:
-    if new_pedido=='-':
-        st.warning('Pedido no valido')
-    else:
-        sql_new_pedido = '''INSERT INTO costos (pedido,costo) VALUES (%s,%s)'''
-        values=(new_pedido,int(precio_new_pedido))
-        mycursor4 = mydb.cursor(prepared=True)
-        mycursor4.execute(sql_new_pedido,values)
-        mydb.commit()
-        mycursor4.close()
-        mydb.close()
-        st.session_state['pedidos'].append(new_pedido)
-        st.success('Nuevo pedido agregado')
-
-default_ix_pedido = st.session_state['pedidos'].index('-')
-selected_pedido = my_form.selectbox('Pedido:',st.session_state['pedidos'],index=default_ix_pedido)
-cantidad_pedido = my_form.number_input('Cantidad',min_value=1)
-pedido_gramaje_fill='-'
-gramaje_pedido = my_form.text_input('Pedido específico con gramaje', pedido_gramaje_fill)
-gramaje_pedido_costo = my_form.text_input('Costo pedido especifico/gramaje', pedido_gramaje_fill)
-my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
-#-----------------------------------------------------------------------------------------
-
-#my_form3 = st.sidebar.form(key="form3")
-my_form.header('Variación', anchor=None)
-variacion_fill='-'
-new_variacion = my_form.text_input('Nuevo variacion', variacion_fill)
-submitted2 = my_form.form_submit_button('Agregar nueva variacion.')
-if submitted2:
-    if new_variacion=='-':
-        st.warning('Variación no valida')
-    else:
-        st.session_state['variacion'].append(new_variacion)
-        st.success('Nueva variación agregado')
-
-default_ix_variacion= st.session_state['variacion'].index('-')
-selected_variacion= my_form.selectbox('Variación',st.session_state['variacion'],index=default_ix_variacion)
-my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
-#-----------------------------------------------------------------------------------------
-
-#my_form4 = st.sidebar.form(key="form4")
-my_form.header('Ruta', anchor=None)
-default_ix_ruta = ruta.index('-')
-selected_ruta = my_form.selectbox('Ruta:',ruta,index=default_ix_ruta)
-my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
-my_form.header('Tiempos', anchor=None)
-desayuno = my_form.number_input('Desayuno',0)
-snack = my_form.number_input('Snack',0)
-merienda = my_form.number_input('Merienda', 0)
-cena = my_form.number_input('Cena', 0)
-my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
-#-----------------------------------------------------------------------------------------
-
-my_form.header('Acciones', anchor=None)
-submitted3 = my_form.form_submit_button('Agregar')
-id_a_editar = my_form.text_input('id del regitro a editar', '-')
-submitted4 = my_form.form_submit_button('Editar')
-id_a_eliminar = my_form.text_input('id del regitro a eliminar', '-')
-submitted52 = my_form.form_submit_button('Eliminar')
-submitted_ruta = my_form.form_submit_button('Ordenar por ruta')
-submitted_reinicio = my_form.form_submit_button('reiniciar')
-
-#-----------------------------------------------------------------------------------------
-
-def add_new_customer():
-    y=pd.DataFrame({'Cliente':[selected_customer],
-                    'Pedido':[selected_pedido],
-                    'Cantidad':[cantidad_pedido],
-                    'Pedido específico':[gramaje_pedido],
-                    'Costo pedido específico':[gramaje_pedido_costo],
-                    'Variación':[selected_variacion],
-                    'Ruta':[selected_ruta],
-                    'Desayuno':[int(desayuno)],
-                    'Snack':[int(snack)],
-                    'Merienda':[int(merienda)],
-                    'Cena':[int(cena)]})
-    session_state.df = session_state.df.append(y,ignore_index=True)
-    print(f'gramaje_pedido:-{gramaje_pedido}-')
-    if (gramaje_pedido != '') and (gramaje_pedido !='-'):
-        sql_gramaje = '''INSERT INTO gramaje (gramaje) VALUES (%s)'''
-        values=(gramaje_pedido,)
-        mycursor2 = mydb.cursor(prepared=True)
-        mycursor2.execute(sql_gramaje,values)
-        mydb.commit()
-        mycursor2.close()
-        mydb.close()
-    st.success('Cliente agregado')
-#-----------------------------------------------------------------------------------------
-
-if submitted3:
-    #y=pd.DataFrame({'Cliente':[selected_customer],
-    #                'Pedido':[selected_pedido],
-    #                'Variación':[selected_variacion],
-    #                'Ruta':[selected_ruta],
-    #                'Desayuno':[int(desayuno)],
-    #                'Snack':[int(snack)],
-    #                'Merienda':[int(merienda)],
-    #                'Cena':[int(cena)]})
-    #session_state.df = session_state.df.append(y,ignore_index=True)
-    #if selected_customer in session_state.df.Cliente.tolist():
-    #    st.warning('Cliente ya registrado')
-    #else:
-    if selected_customer == '-':
-        st.warning('Cliente vacio')
-    else:
-        add_new_customer()
-
-#-----------------------------------------------------------------------------------------
-
-if submitted4:
-    if id_a_editar != '-':
-        if int(id_a_editar) in session_state.df.index:
-            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Pedido'] = selected_pedido
-            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Cantidad'] = cantidad_pedido
-            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Gramaje'] = gramaje_pedido
-            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Variación'] = selected_variacion
-            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Ruta'] = selected_ruta
-            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Desayuno'] = desayuno
-            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Snack'] = snack
-            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Merienda'] = merienda
-            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Cena'] = cena
-
-            session_state.df.loc[int(id_a_editar),'Pedido'] = selected_pedido
-            session_state.df.loc[int(id_a_editar),'Cantidad'] = cantidad_pedido
-            session_state.df.loc[int(id_a_editar),'Pedido específico'] = gramaje_pedido
-            session_state.df.loc[int(id_a_editar),'Costo pedido específico'] = gramaje_pedido_costo
-            session_state.df.loc[int(id_a_editar),'Variación'] = selected_variacion
-            session_state.df.loc[int(id_a_editar),'Ruta'] = selected_ruta
-            session_state.df.loc[int(id_a_editar),'Desayuno'] = desayuno
-            session_state.df.loc[int(id_a_editar),'Snack'] = snack
-            session_state.df.loc[int(id_a_editar),'Merienda'] = merienda
-            session_state.df.loc[int(id_a_editar),'Cena'] = cena
-            st.success('Cliente actualizado')
-    else:
-        st.success('id no válido')
-#-----------------------------------------------------------------------------------------
-
-if submitted52:
-    if int(id_a_eliminar) in session_state.df.index:
-        i = session_state.df.loc[session_state.df['Cliente']==selected_customer,:].index
-        #session_state.df.drop(i,inplace=True)
-        session_state.df.drop(int(id_a_eliminar),inplace=True)
-        session_state.df.reset_index(inplace=True)
-        session_state.df.drop('index',axis=1,inplace=True)
-        st.success('Cliente eliminado')
-    else:
-        st.warning('Cliente no registrado')
-#-----------------------------------------------------------------------------------------
-
-if submitted_reinicio:
+def reinicio():
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
     sql = """UPDATE pedidos_v3 SET 
             platillos_pollo_normal= 0,
             platillos_pollo_sin_sal= 0,
@@ -358,18 +203,233 @@ if submitted_reinicio:
     mydb.commit()
     print(mycursor.rowcount, "record(s) affected")
     mycursor.close()
-    #mydb.close()
+    mydb.close()
+
+def truncate_gramaje():
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
+    mycursor2= mydb.cursor()
+    mycursor2.execute("TRUNCATE TABLE gramaje")
+    mycursor2.close()
+    mydb.commit()
+    mydb.close()
+
+#Reading customers from db
+
+df_costos = get_cost()
+df_customer2 = get_customer()
+if 'pedidos' not in st.session_state:
+    #st.session_state['pedidos']=['Pollo','Pescado','Salmón','Camarones','E.Buffalo','E. Carnes Frias','E. Dliz','E. Cesar','Hamb Normal','Hamb Chilaca','Hamb Champiñones','Hamb Haw','Atun']
+    st.session_state['pedidos']=df_costos['Pedido'].tolist()
+if 'variacion' not in st.session_state:
+    st.session_state['variacion']=['Sin carbo','Colitis','Sin sal', 'Sin chile','Pan margarita','Lechuga','Pan thin','Alitas','Buffalo','Mostaza','Limón pepper','Natural','BBQs','Otro * especificar','-']
+if 'clientes' not in st.session_state:
+    st.session_state['clientes'] = df_customer2['NOMBRE'].tolist()
+if 'placeholder' not in st.session_state:
+    st.session_state['placeholder'] = '-'
+
+#session_state = SessionState.get(df=df_structure)
+df_structure2,df_ruta =  get_data_structure()
+session_state = SessionState.get(df=df_structure2)
+session_state.df['Ruta'] = pd.Categorical(session_state.df['Ruta'], ['R1A','R1C','R2A','R2C','R1V','R2V','LOCAL','-'])
+#customers = df_customer['NOMBRE '].tolist()
+
+#variacion
+#variacion= ['Sin carbo','Colitis','Sin sal', 'Sin chile','Otro * especificar']
+#https://srv555.main-hosting.eu:7443/files/public_html/bell.wav
+#ruta
+ruta = ['R1A','R1C','R1V','R2A','R2C','R2V','LOCAL','-']
+
+#pedidos
+#pedidos=['Pollo','Pescado','Salmón','Camarones','E.Buffalo','E. Carnes Frias','E. Dliz','E. Cesar','Hamb Normal','Hamb Chilaca','Hamb Champiñones','Hamb Haw']
+
+#session_state = SessionState.get(df=df_structure)
+
+st.title('Nutri Eat')
+st.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+#'''response = requests.get("https://raw.githubusercontent.com/robalejandrogon/nutri_app_streamlit/main/image_1.png")'''
+response = get_picture()
+img = Image.open(BytesIO(response.content))
+
+today = date.today()
+
+#Description
+#st.markdown("""
+#Aplicación para gestión de ordenes y pedidos.
+#""")
+
+#Side header
+st.sidebar.markdown(today)
+st.sidebar.image(img)
+#-----------------------------------------------------------------------------------------
+my_form = st.sidebar.form(key = "form1")
+my_form.header('Cliente', anchor=None)
+new_cliente_fill = '-'
+new_customer = my_form.text_input('Nuevo cliente', st.session_state['placeholder'] )
+submitted0 = my_form.form_submit_button('Agregar nuevo cliente .')
+#INSERT INTO clientes (cliente) VALUES ('Hola')
+if submitted0:
+    if new_customer == '-':
+        st.warning('Cliente no valido')
+    else:
+        insert_customer(new_customer)
+        
+default_ix = st.session_state['clientes'].index('-')
+selected_customer = my_form.selectbox('Nombre:',st.session_state['clientes'],index=default_ix)
+my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+#-----------------------------------------------------------------------------------------
+
+#my_form2 = st.sidebar.form(key="form2")
+my_form.header('Pedido', anchor=None)
+new_pedido_fill='-'
+new_pedido = my_form.text_input('Nuevo pedido', new_pedido_fill)
+precio_new_pedido = my_form.text_input('Precio nuevo pedido', new_pedido_fill)
+submitted1 = my_form.form_submit_button('Agregar nuevo pedido sencillo.')
+if submitted1:
+    if new_pedido=='-':
+        st.warning('Pedido no valido')
+    else:
+        insert_new_pedido(new_pedido,precio_new_pedido)
+
+default_ix_pedido = st.session_state['pedidos'].index('-')
+selected_pedido = my_form.selectbox('Pedido:',st.session_state['pedidos'],index=default_ix_pedido)
+cantidad_pedido = my_form.number_input('Cantidad',min_value=1)
+pedido_gramaje_fill='-'
+gramaje_pedido = my_form.text_input('Pedido específico con gramaje', pedido_gramaje_fill)
+gramaje_pedido_costo = my_form.text_input('Costo pedido especifico/gramaje', pedido_gramaje_fill)
+my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+#-----------------------------------------------------------------------------------------
+
+#my_form3 = st.sidebar.form(key="form3")
+my_form.header('Variación', anchor=None)
+variacion_fill='-'
+new_variacion = my_form.text_input('Nuevo variacion', variacion_fill)
+submitted2 = my_form.form_submit_button('Agregar nueva variacion.')
+if submitted2:
+    if new_variacion=='-':
+        st.warning('Variación no valida')
+    else:
+        st.session_state['variacion'].append(new_variacion)
+        st.success('Nueva variación agregado')
+
+default_ix_variacion= st.session_state['variacion'].index('-')
+selected_variacion= my_form.selectbox('Variación',st.session_state['variacion'],index=default_ix_variacion)
+my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+#-----------------------------------------------------------------------------------------
+
+#my_form4 = st.sidebar.form(key="form4")
+my_form.header('Ruta', anchor=None)
+default_ix_ruta = ruta.index('-')
+selected_ruta = my_form.selectbox('Ruta:',ruta,index=default_ix_ruta)
+my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+my_form.header('Tiempos', anchor=None)
+desayuno = my_form.number_input('Desayuno',0)
+snack = my_form.number_input('Snack',0)
+merienda = my_form.number_input('Merienda', 0)
+cena = my_form.number_input('Cena', 0)
+my_form.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
+#-----------------------------------------------------------------------------------------
+
+my_form.header('Acciones', anchor=None)
+submitted3 = my_form.form_submit_button('Agregar')
+id_a_editar = my_form.text_input('id del regitro a editar', '-')
+submitted4 = my_form.form_submit_button('Editar')
+id_a_eliminar = my_form.text_input('id del regitro a eliminar', '-')
+submitted52 = my_form.form_submit_button('Eliminar')
+submitted_ruta = my_form.form_submit_button('Ordenar por ruta')
+submitted_reinicio = my_form.form_submit_button('reiniciar')
+
+#-----------------------------------------------------------------------------------------
+
+def add_new_customer():
+    y=pd.DataFrame({'Cliente':[selected_customer],
+                    'Pedido':[selected_pedido],
+                    'Cantidad':[cantidad_pedido],
+                    'Pedido específico':[gramaje_pedido],
+                    'Costo pedido específico':[gramaje_pedido_costo],
+                    'Variación':[selected_variacion],
+                    'Ruta':[selected_ruta],
+                    'Desayuno':[int(desayuno)],
+                    'Snack':[int(snack)],
+                    'Merienda':[int(merienda)],
+                    'Cena':[int(cena)]})
+    session_state.df = session_state.df.append(y,ignore_index=True)
+    print(f'gramaje_pedido:-{gramaje_pedido}-')
+    if (gramaje_pedido != '') and (gramaje_pedido !='-'):
+        insert_gramaje(gramaje_pedido)
+    st.success('Cliente agregado')
+#-----------------------------------------------------------------------------------------
+
+if submitted3:
+    #y=pd.DataFrame({'Cliente':[selected_customer],
+    #                'Pedido':[selected_pedido],
+    #                'Variación':[selected_variacion],
+    #                'Ruta':[selected_ruta],
+    #                'Desayuno':[int(desayuno)],
+    #                'Snack':[int(snack)],
+    #                'Merienda':[int(merienda)],
+    #                'Cena':[int(cena)]})
+    #session_state.df = session_state.df.append(y,ignore_index=True)
+    #if selected_customer in session_state.df.Cliente.tolist():
+    #    st.warning('Cliente ya registrado')
+    #else:
+    if selected_customer == '-':
+        st.warning('Cliente vacio')
+    else:
+        add_new_customer()
+
+#-----------------------------------------------------------------------------------------
+
+if submitted4:
+    if id_a_editar != '-':
+        if int(id_a_editar) in session_state.df.index:
+            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Pedido'] = selected_pedido
+            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Cantidad'] = cantidad_pedido
+            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Gramaje'] = gramaje_pedido
+            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Variación'] = selected_variacion
+            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Ruta'] = selected_ruta
+            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Desayuno'] = desayuno
+            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Snack'] = snack
+            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Merienda'] = merienda
+            #session_state.df.loc[session_state.df['Cliente']==selected_customer,'Cena'] = cena
+
+            session_state.df.loc[int(id_a_editar),'Pedido'] = selected_pedido
+            session_state.df.loc[int(id_a_editar),'Cantidad'] = cantidad_pedido
+            session_state.df.loc[int(id_a_editar),'Pedido específico'] = gramaje_pedido
+            session_state.df.loc[int(id_a_editar),'Costo pedido específico'] = gramaje_pedido_costo
+            session_state.df.loc[int(id_a_editar),'Variación'] = selected_variacion
+            session_state.df.loc[int(id_a_editar),'Ruta'] = selected_ruta
+            session_state.df.loc[int(id_a_editar),'Desayuno'] = desayuno
+            session_state.df.loc[int(id_a_editar),'Snack'] = snack
+            session_state.df.loc[int(id_a_editar),'Merienda'] = merienda
+            session_state.df.loc[int(id_a_editar),'Cena'] = cena
+            st.success('Cliente actualizado')
+    else:
+        st.success('id no válido')
+#-----------------------------------------------------------------------------------------
+
+if submitted52:
+    if int(id_a_eliminar) in session_state.df.index:
+        i = session_state.df.loc[session_state.df['Cliente']==selected_customer,:].index
+        #session_state.df.drop(i,inplace=True)
+        session_state.df.drop(int(id_a_eliminar),inplace=True)
+        session_state.df.reset_index(inplace=True)
+        session_state.df.drop('index',axis=1,inplace=True)
+        st.success('Cliente eliminado')
+    else:
+        st.warning('Cliente no registrado')
+#-----------------------------------------------------------------------------------------
+
+if submitted_reinicio:
+    reinicio()
     print(f'len : {len(session_state.df)}')
     if len(session_state.df) > 0:
-        mycursor2= mydb.cursor()
-        mycursor2.execute("TRUNCATE TABLE gramaje")
-        mycursor2.close()
-        mydb.commit()
+        truncate_gramaje()
         session_state.df = session_state.df.truncate(after=-1)
-
-    mydb.close()    
-    session_state = SessionState.get(df=df_structure)
-    
+    session_state = SessionState.get(df=df_structure2)
     st.success('Pedidos reseteados')
 #-----------------------------------------------------------------------------------------
 
@@ -401,7 +461,7 @@ if button_ckeck:
     if check_flag:
         if check_customer in session_state.df['Cliente'].tolist():
             session_state.df.loc[session_state.df['Cliente'].str.contains(check_customer),'Check']= 'Ok'
-            count = st_autorefresh(interval=2000, limit=100, key="fizzbuzzcounter")
+            #count = st_autorefresh(interval=2000, limit=100, key="fizzbuzzcounter")
 
 #-----------------------------------------------------------------------------------------
 
@@ -422,8 +482,9 @@ with st.container():
 #    session_state.df.sort_values('Ruta',inplace=True)
 #-----------------------------------------------------------------------------------------
 
-if submitted4:
-    st.bar_chart(session_state.df['Pedido'].value_counts())
+#if submitted4:
+#    st.bar_chart(session_state.df['Pedido'].value_counts())
+
 #-----------------------------------------------------------------------------------------
 
 if submitted5:
@@ -587,7 +648,11 @@ if submitted5:
     platillos_sin_sal = platillos_pollo_sin_sal + pescado_sin_sal + salmon_sin_sal + camarones_sin_sal + atun_sin_sal 
     hamburguesas = h_normal + h_chilaca + h_champ + h_haw
     platillos_totales = desayuno + snack+ merienda+ cena+ platillos_pollo_normal + platillos_pollo_sin_sal + pescado_sin_sal + pescado_normal + salmon_sin_sal + salmon_normal + camarones_sin_sal + camarones_normal + atun_sin_sal + atun_normal +e_buffalo +e_carnes_frias + d_liz + e_cesar + h_normal + h_chilaca + h_champ + h_haw+panini_carnes_frias+panini_pollo
-
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
     sql = """UPDATE pedidos_v3 SET platillos_pollo_normal= %s,platillos_pollo_sin_sal= %s,
             pescado_sin_sal= %s,
             pescado_normal= %s,
