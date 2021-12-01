@@ -201,7 +201,6 @@ def reinicio():
     mycursor = mydb.cursor()
     mycursor.execute(sql)
     mydb.commit()
-    print(mycursor.rowcount, "record(s) affected")
     mycursor.close()
     mydb.close()
 
@@ -357,7 +356,6 @@ def add_new_customer():
                     'Merienda':[int(merienda)],
                     'Cena':[int(cena)]})
     session_state.df = session_state.df.append(y,ignore_index=True)
-    print(f'gramaje_pedido:-{gramaje_pedido}-')
     if (gramaje_pedido != '') and (gramaje_pedido !='-'):
         insert_gramaje(gramaje_pedido)
     st.success('Cliente agregado')
@@ -425,7 +423,6 @@ if submitted52:
 
 if submitted_reinicio:
     reinicio()
-    print(f'len : {len(session_state.df)}')
     if len(session_state.df) > 0:
         truncate_gramaje()
         session_state.df = session_state.df.truncate(after=-1)
@@ -490,31 +487,25 @@ with st.container():
 if submitted5:
     platillos_pollo_normal = session_state.df.loc[(session_state.df.Pedido=='Pollo') & (session_state.df['Variación']!='Sin sal'),
                                                       'Cantidad'].sum()
-    print(f'Platillos pollo normal : {platillos_pollo_normal}')
     platillos_pollo_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Pollo') & 
                                                   (session_state.df['Variación']=='Sin sal'),
                                                       'Cantidad'].sum()
-    print(f'Platillos pollo sin sal: {platillos_pollo_sin_sal}')
     pescado_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Pescado') & 
                                                   (session_state.df['Variación']=='Sin sal'),
                                                       'Cantidad'].sum()
-    print(f'Platillos pescado sin sal: {pescado_sin_sal}')
     pescado_normal = session_state.df.loc[(session_state.df.Pedido=='Pescado') & 
                                                   (
                                                       (session_state.df['Variación']!='Sin sal') 
                                                       ),
                                                       'Cantidad'].sum()
-    print(f'Platillos pescado normal: {pescado_normal}')
     salmon_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Salmón') & 
                                                   (session_state.df['Variación']=='Sin sal'),
                                                       'Cantidad'].sum()
-    print(f'Salmon sin sal : {salmon_sin_sal}')
     salmon_normal = session_state.df.loc[(session_state.df.Pedido=='Salmón') & 
                                                   (
                                                       (session_state.df['Variación']!='Sin sal') 
                                                       ),
                                                       'Cantidad'].sum()
-    print(f'Salmon normal : {salmon_normal}')
     camarones_sin_sal = session_state.df.loc[(session_state.df.Pedido=='Camarones') & 
                                                   (session_state.df['Variación']=='Sin sal'),
                                                       'Cantidad'].sum()
@@ -785,7 +776,6 @@ if submitted5:
     mycursor = mydb.cursor()
     mycursor.execute(sql, values)
     mydb.commit()
-    print(mycursor.rowcount, "record(s) affected")
     mycursor.close()
     mydb.close()
     st.success('Contabilizador actualizado')
@@ -828,18 +818,15 @@ if submitted6:
     
 
 if submitted7:
-    print('Boton reporte semanal')
     #folder = 'reportes'
     #files= []
     #today = date.today()
     #for file in os.listdir(folder):
-    #    print(f'File: {file}')
     #    if (pd.to_datetime(file[8:-4]) <= today)and (pd.to_datetime(file[8:-4])  >=  today - datetime.timedelta(days=7)):
     #        files.append(os.path.join(folder,file))
     dfs=[]
     #for file_path in files:
     for file_path in file:
-        print('Filepath {file_path}')
         df = pd.read_csv(file_path)
         df['Date'] = pd.to_datetime(df['Date'])
         dfs.append(df)
@@ -870,11 +857,9 @@ if submitted7:
                                        }).reset_index()
     for index,row in x.iterrows():
         if row['# Desayuno']== 5:
-            print(row['Costo desayuno'])
             #x.loc[index,'Costo desayuno'] = row['Costo desayuno']- 20
             x.loc[index,'Costo desayuno'] = 280
         if row['# Cena']== 5:
-            print(row['Costo cena'])
             #x.loc[index,'Costo cena'] = row['Costo cena']- 25
             x.loc[index,'Costo cena'] = 400
         
