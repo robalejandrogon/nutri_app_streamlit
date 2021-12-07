@@ -27,24 +27,20 @@ from urllib.request import urlopen
 
 @st.cache
 def get_data_structure():
-    url_structure = "https://raw.githubusercontent.com/robalejandrogon/files/main/estructura.csv"
-    download_structure = requests.get(url_structure).content
-    df_structure = pd.read_csv(io.StringIO(download_structure.decode('utf-8')))
+    #url_structure2 = "https://raw.githubusercontent.com/robalejandrogon/files/main/estructura_v2.csv"
+    #download_structure2 = requests.get(url_structure2).content
+    df_structure2 = pd.read_csv("https://raw.githubusercontent.com/robalejandrogon/files/main/estructura_v2.csv")
 
-    url_structure2 = "https://raw.githubusercontent.com/robalejandrogon/files/main/estructura_v2.csv"
-    download_structure2 = requests.get(url_structure2).content
-    df_structure2 = pd.read_csv(io.StringIO(download_structure2.decode('utf-8')))
-
-    url_ruta = "https://raw.githubusercontent.com/robalejandrogon/files/main/rutas.csv"
-    download_ruta = requests.get(url_ruta).content
-    df_ruta = pd.read_csv(io.StringIO(download_ruta.decode('utf-8')))
+    #url_ruta = "https://raw.githubusercontent.com/robalejandrogon/files/main/rutas.csv"
+    #download_ruta = requests.get(url_ruta).content
+    df_ruta = pd.read_csv("https://raw.githubusercontent.com/robalejandrogon/files/main/rutas.csv")
 
     return df_structure2,df_ruta
 
-@st.cache
-def get_picture():
-    response = requests.get("https://raw.githubusercontent.com/robalejandrogon/nutri_app_streamlit/main/image_1.png")
-    return response
+#@st.cache
+#def get_picture():
+#    response = requests.get("https://raw.githubusercontent.com/robalejandrogon/nutri_app_streamlit/main/image_1.png")
+#    return response
 
 @st.cache()
 def get_customer():
@@ -230,7 +226,6 @@ if 'clientes' not in st.session_state:
 if 'placeholder' not in st.session_state:
     st.session_state['placeholder'] = '-'
 
-#session_state = SessionState.get(df=df_structure)
 df_structure2,df_ruta =  get_data_structure()
 session_state = SessionState.get(df=df_structure2)
 session_state.df['Ruta'] = pd.Categorical(session_state.df['Ruta'], ['R1A','R1C','R2A','R2C','R1V','R2V','LOCAL','-'])
@@ -250,8 +245,8 @@ ruta = ['R1A','R1C','R1V','R2A','R2C','R2V','LOCAL','-']
 st.title('Nutri Eat')
 st.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 #'''response = requests.get("https://raw.githubusercontent.com/robalejandrogon/nutri_app_streamlit/main/image_1.png")'''
-response = get_picture()
-img = Image.open(BytesIO(response.content))
+#response = get_picture()
+#img = Image.open(BytesIO(response.content))
 
 today = date.today()
 
@@ -262,7 +257,7 @@ today = date.today()
 
 #Side header
 st.sidebar.markdown(today)
-st.sidebar.image(img)
+#st.sidebar.image(img)
 #-----------------------------------------------------------------------------------------
 my_form = st.sidebar.form(key = "form1")
 my_form.header('Cliente', anchor=None)
