@@ -37,10 +37,10 @@ def get_data_structure():
 
     return df_structure2,df_ruta
 
-#@st.cache
-#def get_picture():
-#    response = requests.get("https://raw.githubusercontent.com/robalejandrogon/nutri_app_streamlit/main/image_1.png")
-#    return response
+@st.cache
+def get_picture():
+    response = requests.get("https://raw.githubusercontent.com/robalejandrogon/nutri_app_streamlit/main/image_1.png")
+    return response
 
 @st.cache()
 def get_customer():
@@ -57,6 +57,92 @@ def get_customer():
     df_customer2 = pd.DataFrame(clients_list,columns=['NOMBRE'])
     mydb.close()
     return df_customer2
+
+def get_records():
+    mydb = mysql.connector.connect(
+        host="sql555.main-hosting.eu ",
+        user="u591727659_robalejandro",
+        password="RobalejandroTest1234",
+        database="u591727659_test")
+    sql="""SELECT * FROM records"""
+    mycursor = mydb.cursor()
+    mycursor.execute(sql)
+    myresult = mycursor.fetchall()
+    df= pd.DataFrame(myresult,columns=['id','Cliente',
+                                    'Pedido',
+                                    'Cantidad',
+                                    'Pedido específico',
+                                    'Costo pedido específico',
+                                    'Variación',
+                                    'Ruta',
+                                    'Desayuno',
+                                    'Snack','Merienda','Cena','Check'])
+    mydb.close()
+    return df
+
+def insert_records(record):
+    record_l = record.values.tolist()
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
+    sql_new_customer = '''INSERT INTO records (clientes,pedidos,Cantidad,pedido_especifico,costo_pedido_especifico,variacion,ruta,desayuno,snack,merienda,cena,check_customer) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'''
+    values=(record_l[0][0],record_l[0][1],record_l[0][2],record_l[0][3],record_l[0][4],record_l[0][5],record_l[0][6],record_l[0][7],record_l[0][8],record_l[0][9],record_l[0][10],0)
+    mycursor2 = mydb.cursor(prepared=True)
+    mycursor2.execute(sql_new_customer,values)
+    mydb.commit()
+    mycursor2.close()
+    mydb.close()
+
+def truncate_records():
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
+    mycursor2= mydb.cursor()
+    mycursor2.execute("TRUNCATE TABLE records")
+    mycursor2.close()
+    mydb.commit()
+    mydb.close()
+
+def delete_record(val):
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
+    mycursor2= mydb.cursor()
+    mycursor2.execute("DELETE FROM records WHERE id_record=%s",(val,))
+    mycursor2.close()
+    mydb.commit()
+    mydb.close()
+
+def update_records(vals):
+    mydb = mysql.connector.connect(
+    host="sql555.main-hosting.eu ",
+    user="u591727659_robalejandro",
+    password="RobalejandroTest1234",
+    database="u591727659_test")
+    mycursor2= mydb.cursor()
+    vals =(selected_pedido,cantidad_pedido,gramaje_pedido,gramaje_pedido_costo,selected_variacion,selected_ruta,desayuno,snack,merienda,cena,0,int(id_a_editar)+1)
+    mycursor2.execute('''UPDATE records SET 
+                            pedidos=%s,
+                            Cantidad=%s,
+                            pedido_especifico=%s,
+                            costo_pedido_especifico=%s,
+                            variacion=%s,
+                            ruta=%s,
+                            desayuno=%s,
+                            snack=%s,
+                            merienda=%s,
+                            cena=%s,
+                            check_customer=%s
+                            WHERE id_record=%s''',(vals))
+    mycursor2.close()
+    mydb.commit()
+    mydb.close()
 
 @st.cache()
 def get_cost():
@@ -212,6 +298,7 @@ def truncate_gramaje():
     mydb.commit()
     mydb.close()
 
+
 #Reading customers from db
 
 df_costos = get_cost()
@@ -225,10 +312,19 @@ if 'clientes' not in st.session_state:
     st.session_state['clientes'] = df_customer2['NOMBRE'].tolist()
 if 'placeholder' not in st.session_state:
     st.session_state['placeholder'] = '-'
+if 'records' not in st.session_state:
+    st.session_state['recors']=pd.DataFrame()
 
 df_structure2,df_ruta =  get_data_structure()
 session_state = SessionState.get(df=df_structure2)
 session_state.df['Ruta'] = pd.Categorical(session_state.df['Ruta'], ['R1A','R1C','R2A','R2C','R1V','R2V','LOCAL','-'])
+
+if session_state.df.shape[0]==0:
+    df_rec = get_records()
+    df_rec.drop('id',axis=1,inplace=True)
+    session_state.df = session_state.df.append(df_rec,ignore_index=True)
+
+#st.dataframe(session_state.df,width=1500,height=400)
 #customers = df_customer['NOMBRE '].tolist()
 
 #variacion
@@ -245,8 +341,8 @@ ruta = ['R1A','R1C','R1V','R2A','R2C','R2V','LOCAL','-']
 st.title('Nutri Eat')
 st.markdown("""<hr style="height:2px;border:none;color:#333;background-color:#333;" /> """, unsafe_allow_html=True)
 #'''response = requests.get("https://raw.githubusercontent.com/robalejandrogon/nutri_app_streamlit/main/image_1.png")'''
-#response = get_picture()
-#img = Image.open(BytesIO(response.content))
+response = get_picture()
+img = Image.open(BytesIO(response.content))
 
 today = date.today()
 
@@ -257,7 +353,7 @@ today = date.today()
 
 #Side header
 st.sidebar.markdown(today)
-#st.sidebar.image(img)
+st.sidebar.image(img)
 #-----------------------------------------------------------------------------------------
 my_form = st.sidebar.form(key = "form1")
 my_form.header('Cliente', anchor=None)
@@ -353,6 +449,7 @@ def add_new_customer():
     session_state.df = session_state.df.append(y,ignore_index=True)
     if (gramaje_pedido != '') and (gramaje_pedido !='-'):
         insert_gramaje(gramaje_pedido)
+    insert_records(y)
     st.success('Cliente agregado')
 #-----------------------------------------------------------------------------------------
 
@@ -399,6 +496,10 @@ if submitted4:
             session_state.df.loc[int(id_a_editar),'Snack'] = snack
             session_state.df.loc[int(id_a_editar),'Merienda'] = merienda
             session_state.df.loc[int(id_a_editar),'Cena'] = cena
+            if gramaje_pedido_costo=='-':
+                gramaje_pedido_costo=0
+            vals =(selected_pedido,cantidad_pedido,gramaje_pedido,gramaje_pedido_costo,selected_variacion,selected_ruta,desayuno,snack,merienda,cena,0,int(id_a_editar)+1)
+            update_records(vals)
             st.success('Cliente actualizado')
     else:
         st.success('id no válido')
@@ -411,6 +512,7 @@ if submitted52:
         session_state.df.drop(int(id_a_eliminar),inplace=True)
         session_state.df.reset_index(inplace=True)
         session_state.df.drop('index',axis=1,inplace=True)
+        delete_record(int(id_a_eliminar)+1)
         st.success('Cliente eliminado')
     else:
         st.warning('Cliente no registrado')
@@ -420,6 +522,7 @@ if submitted_reinicio:
     reinicio()
     if len(session_state.df) > 0:
         truncate_gramaje()
+        truncate_records()
         session_state.df = session_state.df.truncate(after=-1)
     session_state = SessionState.get(df=df_structure2)
     st.success('Pedidos reseteados')
